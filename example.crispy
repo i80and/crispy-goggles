@@ -1,0 +1,5 @@
+name docs
+load https://docs.mongodb.com/
+render
+click main > a[href="https://docs.mongodb.com/manual"]
+render
