@@ -60,7 +60,6 @@ page.onError = function(msg, trace) {
 };
 
 var name = ''
-var renderNum = 0
 var stepNum = 0
 function doSteps(steps, callback) {
     if(steps.length === 0) { return callback() }
@@ -74,9 +73,6 @@ function doSteps(steps, callback) {
         name = arg
         return doSteps(steps.slice(1), callback)
     } else if(command === 'click') {
-        highlight(page, arg)
-        page.render('' + name + '-' + renderNum + '-clicked.png')
-        unhighlight(page)
         return click(page, arg, function() { doSteps(steps.slice(1), callback) })
     } else if(command === 'load') {
         page.open(arg, function(status) {
@@ -87,9 +83,15 @@ function doSteps(steps, callback) {
 
             return doSteps(steps.slice(1), callback)
         })
+    } else if(command === 'highlight') {
+        highlight(page, arg)
+        return doSteps(steps.slice(1), callback)
+    } else if(command === 'unhighlight') {
+        unhighlight(page)
+        return doSteps(steps.slice(1), callback)
     } else if(command === 'render') {
-        renderNum += 1
-        page.render('' + name + '-' + renderNum + '.png')
+        const filename = '' + name + '-' + arg + '.png'
+        page.render(filename)
         return doSteps(steps.slice(1), callback)
     } else {
         console.error('Unknown command "' + command + '"')

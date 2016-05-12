@@ -1,5 +1,8 @@
 name docs
 load https://docs.mongodb.com/
-render
+render 1
+highlight main > a[href="https://docs.mongodb.com/manual"]
+render 1-clicked
+unhighlight main > a[href="https://docs.mongodb.com/manual"]
 click main > a[href="https://docs.mongodb.com/manual"]
-render
+render 2
