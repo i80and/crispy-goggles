@@ -2,15 +2,17 @@ set selector = main > a[href="https://docs.mongodb.com/manual"]
 
 name docs
 load https://docs.mongodb.com/
+scroll ${selector}
 render 1
 highlight ${selector}
 render 1-clicked
 unhighlight ${selector}
+scroll reset
 click ${selector}
-wait 2000
+wait
 render 2
 click button.nav-panel-top__search
 setValue #header-db input.nav-panel-top__input, collmod
 click button.nav-panel-top__search
-wait 2000
+wait
 render 3
