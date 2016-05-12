@@ -70,7 +70,12 @@ var stepNum = 0
 const variables = {}
 function doSteps(steps, callback) {
     const nextStep = function() {
-        doSteps(steps.slice(1), callback)
+        try {
+            doSteps(steps.slice(1), callback)
+        } catch(err) {
+            console.error(err)
+            phantom.exit()
+        }
     }
 
     if(steps.length === 0) { return callback() }
