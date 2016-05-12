@@ -1,21 +1,20 @@
 const fs = require('fs')
 const system = require('system')
 
-function click(page, selector, callback) {
-    const result = page.evaluate(function(selector) {
+function click(page, selector) {
+    const coords = page.evaluate(function(selector) {
         try {
-            document.querySelector(selector).click()
-            return true
-        } catch(err) {
-            return false
-        }
+            const element = document.querySelector(selector)
+            const bounds = element.getBoundingClientRect()
+            return [bounds.left, bounds.top]
+        } catch(err) {}
     }, selector)
 
-    if(!result) {
+    if(!coords) {
         throw new Error('Could not select "' + selector + '"')
     }
 
-    setTimeout(callback, 5000)
+    page.sendEvent('click', coords[0], coords[1])
 }
 
 function highlight(page, selector) {
@@ -50,6 +49,12 @@ function unhighlight(page) {
     })
 }
 
+function setValue(selector, value) {
+    page.evaluate(function(selector, value) {
+        document.querySelector(selector).value = value
+    }, selector, value)
+}
+
 const page = require('webpage').create()
 page.viewportSize = { width: 1024, height: 768 }
 page.onError = function(msg, trace) {
@@ -64,6 +69,10 @@ var stepNum = 0
 const variables = {}
 function doSteps(steps, callback) {
     if(steps.length === 0) { return callback() }
+    if(!steps[0].trim() || steps[0].match(/^\s*#/)) {
+        return doSteps(steps.slice(1), callback)
+    }
+
     stepNum += 1
     console.log('Executing step ' + stepNum + ': ' + steps[0])
 
@@ -91,7 +100,8 @@ function doSteps(steps, callback) {
         name = arg
         return doSteps(steps.slice(1), callback)
     } else if(command === 'click') {
-        return click(page, arg, function() { doSteps(steps.slice(1), callback) })
+        click(page, arg)
+        return doSteps(steps.slice(1), callback)
     } else if(command === 'load') {
         page.open(arg, function(status) {
             if(status !== 'success') {
@@ -121,17 +131,40 @@ function doSteps(steps, callback) {
         const varvalue = setMatches[2]
         variables[varname] = varvalue
         return doSteps(steps.slice(1), callback)
+    } else if(command === 'wait') {
+        setTimeout(function() {
+            return doSteps(steps.slice(1), callback)
+        }, parseInt(arg))
+    } else if(command === 'setValue') {
+        const setValueMatches = arg.match(/([^,]+),\s*(.*)/)
+        if(setValueMatches === null) {
+            console.error('invalid "setValue" statement')
+            phantom.exit()
+        }
+        const selector = setValueMatches[1]
+        const value = setValueMatches[2]
+
+        setValue(selector, value)
+        return doSteps(steps.slice(1), callback)
     } else {
         console.error('Unknown command "' + command + '"')
         phantom.exit()
     }
 }
 
-const steps = []
-const stream = fs.open(system.args[1], 'r')
-while(!stream.atEnd()) {
-    steps.push(stream.readLine().trim())
+function main() {
+    const steps = []
+    const stream = fs.open(system.args[1], 'r')
+    while(!stream.atEnd()) {
+        steps.push(stream.readLine().trim())
+    }
+    doSteps(steps, function() {
+        phantom.exit()
+    })
 }
-doSteps(steps, function() {
-    phantom.exit()
-})
+
+try {
+    main()
+} catch(err) {
+    console.error(err)
+}
