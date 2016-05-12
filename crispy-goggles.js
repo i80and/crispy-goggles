@@ -61,14 +61,32 @@ page.onError = function(msg, trace) {
 
 var name = ''
 var stepNum = 0
+const variables = {}
 function doSteps(steps, callback) {
     if(steps.length === 0) { return callback() }
     stepNum += 1
     console.log('Executing step ' + stepNum + ': ' + steps[0])
 
     const matches = steps[0].match(/(\S+)\s*(.*)/)
+    if(matches === null) {
+        console.error('Invalid rule')
+        phantom.exit()
+    }
+
     const command = matches[1]
-    const arg = matches[2]
+    const origArg = matches[2]
+
+    // Substitute variables
+    const arg = origArg.replace(/(\$+){(\S+)}/g, function(match, dollars, varname) {
+        var  newDollars = dollars.replace(/\$\$/g, '$')
+        if(dollars.length % 2 === 0) {
+            return newDollars
+        }
+
+        newDollars = newDollars.slice(0, newDollars.length-1)
+        return newDollars + variables[varname]
+    })
+
     if(command === 'name') {
         name = arg
         return doSteps(steps.slice(1), callback)
@@ -92,6 +110,16 @@ function doSteps(steps, callback) {
     } else if(command === 'render') {
         const filename = '' + name + '-' + arg + '.png'
         page.render(filename)
+        return doSteps(steps.slice(1), callback)
+    } else if(command === 'set') {
+        const setMatches = arg.match(/(\S+)\s*=\s*(.*)/)
+        if(setMatches === null) {
+            console.error('Invalid "set" statement')
+            phantom.exit()
+        }
+        const varname = setMatches[1]
+        const varvalue = setMatches[2]
+        variables[varname] = varvalue
         return doSteps(steps.slice(1), callback)
     } else {
         console.error('Unknown command "' + command + '"')

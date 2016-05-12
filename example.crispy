@@ -1,8 +1,9 @@
 name docs
 load https://docs.mongodb.com/
 render 1
-highlight main > a[href="https://docs.mongodb.com/manual"]
+set selector = main > a[href="https://docs.mongodb.com/manual"]
+highlight ${selector}
 render 1-clicked
-unhighlight main > a[href="https://docs.mongodb.com/manual"]
-click main > a[href="https://docs.mongodb.com/manual"]
+unhighlight ${selector}
+click ${selector}
 render 2
