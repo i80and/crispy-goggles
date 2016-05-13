@@ -1,6 +1,27 @@
 const fs = require('fs')
 const system = require('system')
 
+const waitInterval = 250
+function waitFor(page, selector, callback, enlapsed) {
+    const element = page.evaluate(function(selector) {
+        return document.querySelector(selector)
+    }, selector)
+
+    if(element) {
+        return callback(undefined, undefined)
+    }
+
+    if(enlapsed === undefined) {
+        enlapsed = 0
+    } else if(enlapsed > 10000) {
+        return callback(undefined, 'Timed out')
+    }
+
+    setTimeout(function() {
+        waitFor(page, selector, callback, enlapsed + waitInterval)
+    }, waitInterval)
+}
+
 function click(page, selector) {
     const coords = page.evaluate(function(selector) {
         try {
@@ -146,6 +167,15 @@ function doSteps(steps, callback) {
         setTimeout(function() {
             return nextStep()
         }, parseInt(timeout))
+    } else if(command === 'waitFor') {
+        waitFor(page, arg, function(status, error) {
+            if(error) {
+                console.error(error)
+                phantom.exit()
+            }
+
+            nextStep()
+        })
     } else if(command === 'setValue') {
         const setValueMatches = arg.match(/([^,]+),\s*(.*)/)
         if(setValueMatches === null) {
